@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>AI Geo-Weather Engine & Emergency Broadcast Network</title>
+        <link rel="stylesheet"
+            href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap"
+            rel="stylesheet">
+
+        <style>
+         :root {
+            --bg-gradient: linear-gradient(135deg, #0f172a, #1e1b4b);
+            --card-bg: rgba(255, 255, 255, 0.05);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --accent-glow: #6366f1;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --critical-red: rgba(239, 68, 68, 0.15);
+            --critical-border: #ef4444;
+            
+        }
+        
+        * {
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+        
+        body {
+            background: var(--bg-gradient);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        
+        .dashboard {
+            display: grid;
+            grid-template-columns: 1fr 1.2fr;
+            gap: 30px;
+            width: 100%;
+            max-width: 1100px;
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--card-border);
+            border-radius: 24px;
+            padding: 35px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+        
+        @media (max-width: 850px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .control-panel {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        
+        .header-section h1 {
+            font-size: 30px;
+            margin: 0 0 10px 0;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            background: linear-gradient(to right, #a78bfa, #6366f1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .header-section p {
+            color: var(--text-muted);
+            font-size: 14px;
+            line-height: 1.5;
+            margin: 0 0 25px 0;
+        }
+        
+        .btn {
+            background: var(--accent-glow);
+            color: white;
+            border: none;
+            width: 100%;
+            padding: 15px;
+            border-radius: 14px;
+            font-weight: 600;
+            font-size: 15px;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.6);
+            background: #4f46e5;
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin: 25px 0;
+        }
+        
+        .metric-card {
+            background: rgba(15, 23, 42, 0.4);
+            padding: 16px;
+            border-radius: 14px;
+            border: 1px solid var(--card-border);
+        }
+        
+        .metric-label {
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 700;
+        }
+        
+        .metric-value {
+            font-size: 20px;
+            font-weight: 600;
+            margin-top: 6px;
+            color: #f1f5f9;
+        }
+        
+        .result-display {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(147, 51, 234, 0.08));
+            padding: 24px;
+            border-radius: 18px;
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            margin-top: auto;
+        }
+        
+        .condition-title {
+            font-size: 24px;
+            font-weight: 700;
+            margin: 8px 0;
+            color: #ffffff;
+        }
+        
+        .insights {
+            color: #cbd5e1;
+            font-size: 14px;
+            line-height: 1.5;
+            margin: 0 0 12px 0;
+        }
+        
+        .probability-tag {
+            font-size: 14px;
+            font-weight: 700;
+            color: #a78bfa;
+        }
+        
+        .sms-broadcast-alert {
+            display: none;
+            margin-top: 18px;
+            padding: 12px 16px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            background: var(--critical-red);
+            border: 1px solid var(--critical-border);
+            color: #fca5a5;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.7;
+            }
+            100% {
+                opacity: 1;
+            }
+        }
+        
+        .map-wrapper {
+            border-radius: 20px;
+            overflow: hidden;
+            border: 1px solid var(--card-border);
+            height: 480px;
+            width: 100%;
+            box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.4);
+        }
+        
+        #map {
+            height: 100%;
+            width: 100%;
+        }
+    </style>
+    </head>
+
+    <body>
+
+        <div class="dashboard">
+            <div class="control-panel">
+                <div class="header-section">
+                    <h1>Core-AI Weather</h1>
+                    <p>Acquire real-time atmospheric telemetry via local
+                        satellite nodes. Pinpoint your geolocation coordinate
+                        parameters using the browser matrix array or tap
+                        anywhere on the companion map interface.</p>
+
+                    <button class="btn" onclick="locateUser()">
+                        🛰️ Scan Current Location
+                    </button>
+
+                    <div class="metrics-grid">
+                        <div class="metric-card">
+                            <div class="metric-label">Latitude Node</div>
+                            <div class="metric-value" id="val-lat">--</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">Longitude Node</div>
+                            <div class="metric-value" id="val-lng">--</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="result-display">
+                    <div class="metric-label" style="color: #a78bfa;">AI
+                        Forecast Inference Pipeline</div>
+                    <div class="condition-title" id="res-condition">System
+                        Offline</div>
+                    <p class="insights" id="res-advice">Awaiting location sync.
+                        Select geographical telemetry target metrics on the grid
+                        map component to begin predictive diagnostics.</p>
+                    <div class="probability-tag" id="res-probability"></div>
+
+                    <div class="sms-broadcast-alert" id="sms-status-pill">
+                        🚨 EMERGENCY MASS BROADCAST: <span
+                            id="sms-count-val">0</span> critical SMS alerts
+                        fired to area subscriber databases.
+                    </div>
+                </div>
+            </div>
+
+            <div class="map-wrapper">
+                <div id="map"></div>
+            </div>
+        </div>
+
+        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+        <script>
+        // Initialize core map interface positioned globally
+        let map = L.map('map').setView([20.0, 0.0], 2);
+        let activeMarker = null;
+
+        // Use highly stylized Dark Matter CartoDB tiles to match modern visual design framework
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+        }).addTo(map);
+
+        // Register click interceptor on the map viewport canvas
+        map.on('click', function(e) {
+            updateTrackingPoint(e.latlng.lat, e.latlng.lng);
+        });
+
+        // Hardware/Browser Geolocation Accessor
+        function locateUser() {
+            if (!navigator.geolocation) {
+                alert("Security environment constraint: Geolocation API unsupported.");
+                return;
+            }
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+                    map.setView([lat, lng], 12);
+                    updateTrackingPoint(lat, lng);
+                },
+                () => {
+                    alert("Security alert: Unable to obtain spatial location coordinates.");
+                }
+            );
+        }
+
+        // Pipeline communication handler interfacing with Python Flask API Backend
+        async function updateTrackingPoint(lat, lng) {
+            document.getElementById('val-lat').innerText = lat.toFixed(4);
+            document.getElementById('val-lng').innerText = lng.toFixed(4);
+
+            // Manage map element marker instance state
+            if (activeMarker) {
+                activeMarker.setLatLng([lat, lng]);
+            } else {
+                activeMarker = L.marker([lat, lng]).addTo(map);
+            }
+
+            try {
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        lat,
+                        lng
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    // Render data nodes to UI markup elements
+                    document.getElementById('res-condition').innerText = data.condition;
+                    document.getElementById('res-advice').innerText = data.advice;
+                    document.getElementById('res-probability').innerText = "Precipitation Probability: " + data.rain_chance;
+
+                    // Toggle emergency mass warning notifications systems UI state
+                    const smsPill = document.getElementById('sms-status-pill');
+                    if (data.sms_triggered) {
+                        smsPill.style.display = 'block';
+                        document.getElementById('sms-count-val').innerText = data.sms_count;
+                    } else {
+                        smsPill.style.display = 'none';
+                    }
+
+                    activeMarker.bindPopup(`<b>AI Inference Outcome</b><br>${data.condition}`).openPopup();
+                } else {
+                    alert("Exception received from pipeline worker process: " + data.error);
+                }
+            } catch (err) {
+                console.error("API Fetch Exception:", err);
+                alert("Failed to communicate with AI Backend Server runtime instance.");
+            }
+        }
+    </script>
+    </body>
+
+</html>
